@@ -1,10 +1,20 @@
 # 🐟 FjordSight PoC: Digital Farm Command Center
 
+Author: Cursor+Marcel Castro
+
+Date: 30.Aug.2025
+
+![image-20250830001931472](./assets/image-20250830001931472.png)
+
+
+
 ## Executive Summary
 
 FjordSight's Digital Farm Command Center is a proof of concept that demonstrates how Snowflake can unify complex IT/OT data, deliver predictive insights with AI/ML, and empower all users with secure, governed data access for sustainable salmon farming operations.
 
 This PoC addresses FjordSight's "triple threat" of data silos by creating a centralized command center that provides a holistic, real-time view of operations from egg to harvest, enabling the shift from reactive problem-solving to proactive, AI-driven optimization.
+
+
 
 ## 🏗️ Architecture Overview
 

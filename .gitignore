@@ -1,0 +1,64 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+
+# Snowflake credentials (NEVER commit these)
+config_local.py
+*.pem
+*.p8
+*.key
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+logs/
+*.log
+tmp/
+temp/
+
+# Model artifacts (optional - can be large)
+models/*.pkl
+models/*.joblib
+*.model
+
+# Data files (optional - can be large)
+data/raw/*
+data/processed/*
+outputs/*
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Streamlit cache
+.streamlit/
+
+# MQTT broker data
+mosquitto.db

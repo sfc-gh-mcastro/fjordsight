@@ -92,6 +92,8 @@ class HABPredictionModel:
             
         except Exception as e:
             self.logger.error(f"Failed to connect to Snowflake: {e}")
+            # For demo purposes, continue without Snowflake data
+            self.logger.info("Continuing with synthetic training data for demo")
             return False
     
     def create_training_features(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -215,7 +217,7 @@ class HABPredictionModel:
             self.logger.info(f"Loaded {len(df)} records for training")
             
             # Handle missing values
-            df = df.fillna(method='forward').fillna(method='backward')
+            df = df.fillna(method='ffill').fillna(method='bfill')
             
             # Create features and synthetic labels
             df = self.create_training_features(df)
@@ -440,25 +442,7 @@ class HABPredictionModel:
         except Exception as e:
             self.logger.error(f"Failed to store prediction: {e}")
     
-    def connect_to_snowflake(self) -> bool:
-        """Establish connection to Snowflake"""
-        try:
-            connection_params = {
-                'account': self.config.SNOWFLAKE_ACCOUNT,
-                'user': self.config.SNOWFLAKE_USER,
-                'password': self.config.SNOWFLAKE_PASSWORD,
-                'warehouse': self.config.SNOWFLAKE_WAREHOUSE,
-                'database': self.config.SNOWFLAKE_DATABASE,
-                'schema': 'ML_MODELS'
-            }
-            
-            self.session = Session.builder.configs(connection_params).create()
-            self.logger.info("Connected to Snowflake successfully")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to connect to Snowflake: {e}")
-            return False
+
     
     def save_model(self):
         """Save the trained model to disk"""

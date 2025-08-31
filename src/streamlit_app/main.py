@@ -197,10 +197,16 @@ class FjordSightApp:
     
     def render_hab_risk_panel(self):
         """Render HAB risk assessment panel"""
-        st.markdown("## 🚨 HAB Risk Assessment")
+        st.markdown("## 🚨 HAB Risk Assessment - v2")
         
         # Get HAB prediction
-        prediction = self.hab_model.predict_hab_risk(st.session_state.selected_farm)
+        try:
+            prediction = self.hab_model.predict_hab_risk(st.session_state.selected_farm)
+            with st.expander("Debug: View Raw Prediction Data"):
+                st.json(prediction)
+        except Exception as e:
+            st.error(f"HAB model error: {e}")
+            prediction = None
         
         if prediction and 'error' not in prediction:
             col1, col2 = st.columns([1, 2])

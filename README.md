@@ -255,44 +255,96 @@ The dashboard intelligently handles data from multiple sources:
 ## 🔧 Technical Implementation
 
 ### Data Ingestion
-- **MQTT Simulator**: Generates realistic sensor data
-- **Snowpipe Streaming**: Near real-time data ingestion
-- **Dynamic Tables**: Automatic data harmonization
-- **Streams & Tasks**: ERP data enrichment
+- **MQTT Simulator**: `SensorDataSimulator` class (`src/data_ingestion/mqtt_simulator.py:17`)
+  - Sensor ranges: Realistic values for salmon farming (lines 24-31)
+  - Data generation: `generate_sensor_reading()` method (lines 59-103)
+  - Publishing: 30-second intervals to 7 sensor topics (lines 105-118)
+- **Snowflake Ingestion**: `MQTTToSnowflakeIngestion` class (`src/data_ingestion/snowflake_ingestion.py:78`)
+  - JWT Authentication: Base64-encoded DER format (lines 46-55)
+  - Batch processing: 100 messages per batch for efficiency (line 97)
+  - MQTT callbacks: `on_mqtt_message()` for real-time processing (lines 198-209)
+- **Dynamic Tables**: Automated IT/OT harmonization (`sql/03_create_harmonized_tables.sql:77`)
+  - Target lag: 1 minute for near real-time updates (line 78)
+  - Sensor pivoting: Transform MQTT time-series to columnar format (lines 86-92)
+  - ERP integration: Latest production metrics via subqueries (lines 94-99)
 
 ### Machine Learning Models
 
 #### HAB Prediction Model
-- **Algorithm**: Random Forest Regression
-- **Features**: Water temperature, pH, oxygen, turbidity, salinity, current speed
-- **Output**: Risk score (0-1) and risk level classification
-- **Accuracy**: R² > 0.85 on synthetic data
+- **Algorithm**: Random Forest Regression (`src/models/hab_prediction_model.py:275`)
+- **Feature Engineering**: `create_training_features()` method (lines 102-157)
+  - Moving averages: 3-hour and 6-hour windows (lines 121-124)
+  - Rate of change features (lines 126-129) 
+  - Interaction features: temp×pH, oxygen/turbidity ratio (lines 131-135)
+  - Risk indicator flags (lines 137-141)
+- **Domain Knowledge Rules**: `simple_rule_based_prediction_with_data()` (lines 471-555)
+  - Temperature risk: >15°C adds 0.3 to risk score (lines 486-490)
+  - pH risk: >8.0 adds 0.2 to risk score (lines 493-498)
+  - Oxygen risk: <7.0 mg/L adds 0.2 to risk score (lines 500-505)
+  - Turbidity risk: >3.0 NTU adds 0.15 to risk score (lines 507-510)
+  - Current speed risk: <0.3 m/s adds 0.15 to risk score (lines 512-515)
+- **Output**: Risk score (0-1) and risk level classification (lines 523-529)
+- **Data Source**: Real-time from `HARMONIZED_FARM_DATA_DT` Dynamic Table (lines 299-318)
 
 #### Sales Co-Pilot Algorithm
-- **Scoring Factors**:
-  - Profitability tier (30%)
-  - Relationship score (25%)
-  - Volume match (20%)
-  - Product preference (15%)
-  - Purchase timing (10%)
-- **Output**: Ranked customer recommendations with probability scores
+- **Core Algorithm**: `calculate_customer_score()` method (`src/streamlit_app/sales_copilot.py:44`)
+- **Scoring Factors** (lines 48-49):
+  - Profitability tier (30%): `profitability_map` scoring (lines 52-53)
+  - Relationship score (25%): Normalized 0-5 scale (lines 55-56)
+  - Volume match (20%): Order size optimization (lines 58-70)
+  - Product preference (15%): Product matching logic (lines 72-81)
+  - Purchase timing (10%): Frequency-based scoring (lines 83-94)
+- **Volume Calculation**: `calculate_recommended_volume()` (lines 103-130)
+- **Revenue Estimation**: `calculate_expected_revenue()` (lines 132-155)
+- **Recommendation Generation**: `generate_recommendations()` (lines 179-238)
+- **Output**: Ranked customer list with probability scores and reasoning
 
 ### Data Architecture
 
 #### Raw Data Zone
-- `RAW_SENSOR_DATA`: MQTT sensor readings
-- `RAW_ERP_DATA`: Production and inventory data
-- `RAW_EXTERNAL_DATA`: Weather and oceanographic data
+- **`RAW_SENSOR_DATA`**: MQTT sensor readings (`sql/02_create_raw_tables.sql:8-21`)
+  - Real-time ingestion: `MQTTToSnowflakeIngestion` class (`src/data_ingestion/snowflake_ingestion.py:78`)
+  - Batch processing: 100 records per batch (`snowflake_ingestion.py:97`)
+- **`RAW_ERP_DATA`**: Production and inventory data (`sql/02_create_raw_tables.sql:24-35`)
+  - ERP simulation: `ERPDataSimulator` class (`src/data_ingestion/erp_data_simulator.py:47`)
+  - Feed inventory updates: every 5 minutes (`erp_data_simulator.py:54`)
+  - Production metrics: every 10 minutes (`erp_data_simulator.py:55`)
 
 #### Harmonized Data Zone
-- `HARMONIZED_FARM_DATA`: Unified IT/OT data
-- Dynamic Tables for real-time processing
-- Automated data quality scoring
+- **`HARMONIZED_FARM_DATA_DT`**: Dynamic Table for IT/OT unification (`sql/03_create_harmonized_tables.sql:77`)
+  - Target lag: 1 minute for near real-time processing (line 78)
+  - Sensor data pivoting: `CASE WHEN` statements (lines 86-92)
+  - ERP data integration: Subqueries for latest values (lines 94-99)
+  - Automated refresh: Snowflake manages updates automatically
 
 #### Analytics Zone
-- `HAB_RISK_PREDICTIONS`: ML model outputs
-- `SALES_OPPORTUNITY_PREDICTIONS`: AI recommendations
-- `MODEL_PERFORMANCE_METRICS`: Model monitoring
+- **HAB Risk Processing**: `predict_hab_risk()` method (`src/models/hab_prediction_model.py:292`)
+- **Sales Recommendations**: `generate_recommendations()` (`src/streamlit_app/sales_copilot.py:179`)
+- **Dashboard Integration**: `load_farm_data()` (`src/streamlit_app/data_loader.py:85`)
+
+### Streamlit Dashboard Implementation
+
+#### Main Application (`src/streamlit_app/main.py`)
+- **App Class**: `FjordSightApp` (line 79)
+- **Data Loading**: Dynamic Table queries for real-time data (lines 90-119)
+- **HAB Risk Panel**: `render_hab_risk_panel()` method (lines 198-267)
+  - Risk gauge visualization: Plotly indicator chart (lines 213-235)
+  - Alert system: Threshold-based warnings (lines 263-264)
+- **Sales Co-Pilot Interface**: `render_sales_copilot()` (lines 269-336)
+  - Scenario input: Volume mismatch handling (lines 274-287)
+  - AI recommendations: Customer scoring and ranking (lines 293-335)
+
+#### Data Processing (`src/streamlit_app/data_loader.py`)
+- **Snowflake Connection**: JWT authentication (lines 26-70)
+- **Dynamic Table Queries**: Real-time harmonized data (lines 90-119)
+- **Synthetic Data Fallback**: `generate_synthetic_data()` (lines 127-220)
+- **Customer Data Management**: `load_customer_data()` (lines 287-320)
+
+### Configuration Management (`config.py`)
+- **Snowflake Settings**: JWT authentication parameters (lines 15-24)
+- **MQTT Configuration**: Broker and topic settings (lines 27-29)
+- **Farm Locations**: Geographic coordinates for 3 sites (lines 35-38)
+- **Model Parameters**: HAB thresholds and prediction horizons (lines 41-44)
 
 ## 📈 Success Criteria & KPIs
 

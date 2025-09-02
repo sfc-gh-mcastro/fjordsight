@@ -13,13 +13,23 @@ import json
 import sys
 import os
 
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent directories to path to handle different execution contexts
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+sys.path.append(parent_dir)
+sys.path.append(grandparent_dir)
 
 from config import Config
 from models.hab_prediction_model import HABPredictionModel
-from streamlit_app.sales_copilot import SalesCoPilot
-from streamlit_app.data_loader import DataLoader
+
+# Try relative imports first, then absolute imports
+try:
+    from .sales_copilot import SalesCoPilot
+    from .data_loader import DataLoader
+except ImportError:
+    from sales_copilot import SalesCoPilot
+    from data_loader import DataLoader
 
 # Page configuration
 st.set_page_config(

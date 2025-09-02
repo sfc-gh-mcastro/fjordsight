@@ -10,10 +10,20 @@ import logging
 import sys
 import os
 
-# Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent directories to path to handle different execution contexts
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+sys.path.append(parent_dir)
+sys.path.append(grandparent_dir)
+
 from config import Config
-from streamlit_app.data_loader import DataLoader
+
+# Try relative import first, then absolute import
+try:
+    from .data_loader import DataLoader
+except ImportError:
+    from data_loader import DataLoader
 
 class SalesCoPilot:
     """AI-powered sales recommendation system"""
